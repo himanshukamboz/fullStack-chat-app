@@ -67,13 +67,34 @@ const ChatContainer = () => {
                   </time>
                 </div>
                 <div className="chat-bubble flex flex-col">
-                  {message.image && (
+                  {message.image &&(<div className="relative w-fit">
+                    {/* 📷 Image */}
                     <img
                       src={message.image}
                       alt="Attachment"
-                      className="sm:max-w-[200px] rounded-md mb-2"
+                      className={`sm:max-w-[200px] rounded-md ${
+                        message.isSending ? "opacity-50" : ""
+                      }`}
                     />
-                  )}
+
+                    {/* 🔵 Overlay progress */}
+                    {message.isSending && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-md">
+                        {/* Circle or % */}
+                        <span className="text-white text-sm font-semibold">
+                          {message.progress || 0}%
+                        </span>
+
+                        {/* Optional bar inside */}
+                        <div className="w-3/4 bg-gray-300 rounded-full h-1 mt-2">
+                          <div
+                            className="bg-blue-500 h-1 rounded-full transition-all duration-200"
+                            style={{ width: `${message.progress || 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>)}
                   {message.text && <p>{message.text}</p>}
                 </div>
               </div>
