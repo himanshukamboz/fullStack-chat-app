@@ -11,9 +11,6 @@ const HomePage = () => {
     <div className="h-screen bg-base-200">
       <div className="flex items-center justify-center pt-15 px-4">
         <div className="bg-base-100 rounded-lg shadow-cl w-full max-w-6xl h-[calc(100vh-4.7rem)] flex flex-col">
-          {/* Searchbar at top */}
-          <Searchbar />
-
           {/* Main content */}
           <div className="flex flex-1 overflow-hidden">
             <Sidebar />

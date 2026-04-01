@@ -1,7 +1,7 @@
 import {create } from 'zustand'
 import toast from "react-hot-toast"
 import {axiosInstance} from "../lib/axios"
-
+import { useAuthStore } from './useAuthStore'
 export const useChatStore = create((set,get)=>({
     messages:[],
     users:[],
@@ -35,14 +35,15 @@ export const useChatStore = create((set,get)=>({
     },
     sendMessage: async (data) => {
         const { messages, selectedUser } = get();
-      
+        const authUser = useAuthStore.getState().authUser
         const tempId = Date.now();
       
         const tempMessage = {
           _id: tempId,
           text: data.text,
           image: data.image,
-          senderId: "me",
+          senderId: authUser?._id,
+          createdAt: new Date().toISOString(),
           isSending: true,
           progress: 0,
         };
