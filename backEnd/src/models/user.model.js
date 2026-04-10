@@ -17,7 +17,26 @@ const userSchema = new mongoose.Schema({
     profilePic:{
         type:String,
         default:""
-    }
+    },
+    otp: {
+        type: String,
+        default: null,
+      },
+  
+    otpExpiry: {
+        type: Date,
+        default: null,
+      },
+    isVerified: {
+        type: Boolean,
+        default: false,
+      },
+      friends: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
 },
 {timestamps:true}
 )

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 
 import AuthImagePattern from "../components/AuthImagePattern";
 import toast from "react-hot-toast";
+import VerifyOtpPage from "../components/OtpVerify";
 
 const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,7 +14,7 @@ const SignUpPage = () => {
     email: "",
     password: "",
   });
-
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const { signup, isSigningUp } = useAuthStore();
 
   const validateForm = () => {
@@ -26,12 +27,17 @@ const SignUpPage = () => {
     return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const success = validateForm();
-
-    if (success === true) signup(formData);
+    if (success !== true) return;
+  
+    const res = await signup(formData);
+    console.log(res)
+    if (res?.success) {
+      setShowOtpModal(true); 
+    }
   };
 
   return (
@@ -150,6 +156,10 @@ const SignUpPage = () => {
         title="Join our community"
         subtitle="Connect with friends, share moments, and stay in touch with your loved ones."
       />
+      {showOtpModal && <VerifyOtpPage 
+        email={formData.email}
+        onClose={() => setShowOtpModal(false)}/>
+      }
     </div>
   );
 };

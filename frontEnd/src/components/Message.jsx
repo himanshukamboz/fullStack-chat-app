@@ -27,7 +27,6 @@ const Message = ({ message, prevMessage, selectedUser }) => {
           message.senderId === authUser._id ? "chat-end" : "chat-start"
         }`}
       >
-        {/* Avatar */}
         <div className="chat-image avatar">
           <div className="size-10 rounded-full border">
             <img
@@ -41,7 +40,6 @@ const Message = ({ message, prevMessage, selectedUser }) => {
           </div>
         </div>
 
-        {/* Time */}
         <div className="chat-header mb-1">
           <time className="text-xs opacity-50 ml-1">
             {formatMessageTime(message.createdAt)}

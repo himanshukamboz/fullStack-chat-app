@@ -10,6 +10,7 @@ export const useAuthStore = create((set,get)=>({
     isLoggingIn:false,
     isUpdatingProfile:false,
     isCheckingAuth:true,
+    isVerifying:false,
     onlineUsers:[],
     socket:null,
     checkAuth: async()=>{
@@ -29,17 +30,36 @@ export const useAuthStore = create((set,get)=>({
         set({isSigningUp:true})
         try {
            const res = await axiosInstance.post("/auth/signup",data)
-           set({authUser:res.data})
-           toast.success("Account created Successfully")
-           get().connectSocket()
-           
+           toast.success(res?.data?.message || "Otp sent")
+           return {success:true, email:data.email}
         } catch (error) {
             toast.error(error?.response?.data?.message||"something went wrong")
+            return {success:false}
         }
         finally{
             set({isSigningUp:false})
         }
     },
+
+    verifyOtp: async (data) => {
+        set({ isVerifying: true });
+        try {
+          const res = await axiosInstance.post("/auth/verify-otp", data);
+      
+          set({ authUser: res.data });
+          toast.success("Account verified successfully");
+      
+          get().connectSocket();
+      
+          return { success: true };
+      
+        } catch (error) {
+          toast.error(error?.response?.data?.message || "Invalid OTP");
+          return { success: false };
+        } finally {
+          set({ isVerifying: false });
+        }
+      },
     logout:async()=>{
         try {
             await axiosInstance.get('/auth/logout')

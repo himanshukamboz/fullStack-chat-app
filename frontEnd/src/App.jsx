@@ -10,6 +10,7 @@ import { useAuthStore } from './store/useAuthStore'
 import { Loader } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 import { useThemeStore } from './store/useThemeStore'
+import AddFriendsUI from './pages/AddFriends'
 const App = () => {
   const {authUser,checkAuth,isCheckingAuth} = useAuthStore()
   const {theme}=useThemeStore()
@@ -36,6 +37,7 @@ const App = () => {
         <Route path='/signup' element={!authUser?<SignUpPage/>:<Navigate to="/"/>}/>
         <Route path='/login' element={!authUser?<LoginPage/>:<Navigate to="/"/>}/>
         <Route path='/profile' element={authUser?<ProfilePage/>:<Navigate to="/login"/>}/>
+        <Route path='/friends' element={authUser?<AddFriendsUI/>:<Navigate to="/login"/>}/>
         <Route path='/settings' element={<SettingsPage/>}/>
       </Routes>
      </div>

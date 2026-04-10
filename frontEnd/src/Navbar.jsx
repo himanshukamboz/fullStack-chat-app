@@ -26,7 +26,7 @@ const Navbar = () => {
 
             {authUser && (
               <>
-                <Link to="/settings" className={`btn btn-sm gap-2 transition-colors`}>
+                <Link to="/friends" className={`btn btn-sm gap-2 transition-colors`}>
                   <UserPlus className='w-4 h-4'/>
                   <span className='hidden sm:inline'>Add Friends</span>
                 </Link>
