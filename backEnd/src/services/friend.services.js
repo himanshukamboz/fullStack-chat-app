@@ -43,6 +43,31 @@ export const sendFriendRequestService = async (senderId, receiverId) => {
   return request;
 };
 
+export const acceptRequestService = async (senderId, receiverId) => {
+  const request = await FriendRequest.findOneAndUpdate(
+    {
+      sender: senderId,
+      receiver: receiverId,
+      status: "pending",
+    },
+    { status: "accepted" },
+    { returnDocument: 'after' }
+  );
+
+  if (!request) throw new Error("Request not found");
+
+  await User.findByIdAndUpdate(senderId, {
+    $addToSet: { friends: receiverId },
+  });
+
+  await User.findByIdAndUpdate(receiverId, {
+    $addToSet: { friends: senderId },
+  });
+
+  
+  return request;
+};
+
 export const cancelFriendRequestService = async (senderId, receiverId) => {
   const request = await FriendRequest.findOneAndDelete({
     sender: senderId,

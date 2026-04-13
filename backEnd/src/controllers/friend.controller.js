@@ -1,5 +1,5 @@
 import {cancelFriendRequestService,rejectFriendRequestService,sendFriendRequestService} from "../services/index.js";
-
+import {io,getReceiverSocketId} from "../lib/socket.js"
 export const getAllfriends = async(req,res)=>{
   try {
     const userId = req.user._id
@@ -17,6 +17,14 @@ export const addFriendRequests = async (req, res) => {
 
     const request = await sendFriendRequestService(senderId, receiverId);
 
+    const receiverSocketId = getReceiverSocketId(receiverId);
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newFriendRequest", {
+        senderId,
+        request,
+      });
+    }
     res.status(201).json({
       message: "Friend request sent",
       request,
@@ -28,7 +36,24 @@ export const addFriendRequests = async (req, res) => {
 };
 
 export const acceptRequest = async(req,res)=>{
-  
+  try{
+      const {senderId} = req.body
+      const receiverId = req.user._id
+      await acceptRequestService(senderId,receiverId)
+
+      const senderSocketId = getReceiverSocketId(senderId);
+
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("requestAccepted", {
+        receiverId,
+      })}
+      res.json({
+        message: "New friend added",
+      });
+  }
+  catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 } 
 
 export const cancelRequest = async (req, res) => {

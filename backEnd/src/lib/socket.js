@@ -25,5 +25,6 @@ io.on("connection",(socket)=>{
         io.emit("getOnlineUsers",Object.keys(userSocketMap))
     })
 })
+const getReceiverSocketId = (userId)=> userSocketMap[userId]
 
-export {io,server,app}
+export {io,server,app,getReceiverSocketId}
