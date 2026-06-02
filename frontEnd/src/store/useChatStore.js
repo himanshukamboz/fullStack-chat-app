@@ -2,6 +2,7 @@ import {create } from 'zustand'
 import toast from "react-hot-toast"
 import {axiosInstance} from "../lib/axios"
 import { useAuthStore } from './useAuthStore'
+import { useFriendStore } from "./useFriendStore";
 export const useChatStore = create((set,get)=>({
     messages:[],
     users:[],
@@ -14,8 +15,9 @@ export const useChatStore = create((set,get)=>({
         try {
             const res = await axiosInstance.get("/messages/users")
             set({users:res.data})
+            
         } catch (error) {
-            toast.error(error.response.data.message)
+            toast.error(error?.response?.data?.message||error?.message|| 'something went wrong')
         }
         finally{
             set({isUsersLoading:false})
@@ -111,6 +113,43 @@ export const useChatStore = create((set,get)=>({
               error?.response?.data?.message || "Failed to send message"
             );
           }
+      },
+      subscribeToMessages: () => {
+        console.log("subscribe to messageEvents")
+        const { selectedUser } = get();
+        if (!selectedUser) return;
+    
+        const socket = useAuthStore.getState().socket;
+    
+        socket.on("newMessage", (newMessage) => {
+          const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
+          if (!isMessageSentFromSelectedUser) return;
+    
+          set({
+            messages: [...get().messages, newMessage],
+          });
+        });
+        socket.on("friendRemoved", ({ userId, friendId }) => {
+          console.log(userId,friendId)
+          const myId = String(useAuthStore.getState().authUser._id);
+        
+          const removedUserId =
+            myId === String(userId)
+              ? String(friendId)
+              : String(userId);
+        
+          useFriendStore.setState((state) => ({
+            friends: state.friends.filter(
+              (f) => String(f._id) !== removedUserId
+            ),
+          }));
+        });
+      },
+    
+      unsubscribeFromMessages: () => {
+        const socket = useAuthStore.getState().socket;
+        socket.off("newMessage");
+        socket.off("friendRemoved")
       },
     setSelectedUser:(selectedUser)=>set({selectedUser})
 }))

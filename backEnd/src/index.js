@@ -1,6 +1,7 @@
 import dotenv from "dotenv"
+
 import express from "express"
-import {authRoutes,messageRoutes,userRoutes} from "./routes/index.js";
+import {authRoutes,messageRoutes,friendsRoutes} from "./routes/index.js";
 import connectDb from "./lib/connectDb.js";
 import cookieParser from "cookie-parser";
 import cors from 'cors';
@@ -15,7 +16,7 @@ app.use(cors({
 }))
 app.use('/api/auth',authRoutes)
 app.use('/api/messages',messageRoutes)
-app.use('/api/users',userRoutes)
+app.use('/api/friends',friendsRoutes)
 connectDb().then(() => {
     server.listen(PORT, () => {
         console.log("server started");

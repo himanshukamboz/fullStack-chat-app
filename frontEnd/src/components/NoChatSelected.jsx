@@ -1,6 +1,8 @@
-import { MessageSquare } from "lucide-react";
+import { MessageSquare,UserPlus,Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const NoChatSelected = () => {
+  const navigate = useNavigate()
   return (
     <div className="w-full flex flex-1 flex-col items-center justify-center p-16 bg-base-100/50">
       <div className="max-w-md text-center space-y-6">
@@ -17,6 +19,23 @@ const NoChatSelected = () => {
         </div>
         {/* Welcome Text */}
         <h2 className="text-2xl font-bold">Welcome to Chatty!</h2>
+        <div className="flex justify-center gap-6">
+          {/* Add Friend */}
+          <div
+            onClick={() => navigate("/friends")}
+            className="cursor-pointer w-24 h-24 rounded-2xl bg-base-200 hover:bg-primary/10 flex flex-col items-center justify-center gap-2 transition"
+          >
+            <UserPlus className="w-6 h-6" />
+            <span className="text-sm">Add Friend</span>
+          </div>
+          <div
+            onClick={() => navigate("/create-group")}
+            className="cursor-pointer w-24 h-24 rounded-2xl bg-base-200 hover:bg-primary/10 flex flex-col items-center justify-center gap-2 transition"
+          >
+            <Users className="w-6 h-6" />
+            <span className="text-sm">New Group</span>
+          </div>
+        </div>
         <p className="text-base-content/60">
           Select a conversation from the sidebar to start chatting
         </p>

@@ -2,15 +2,16 @@ import { signupService,loginService,updateProfileService,verifyOtpService } from
 import { generateToken } from "../lib/utils.js";
 
 export const signup = async (req, res) => {
+  
   try {
     const { fullName, email, password } = req.body;
-
-    const newUser = await signupService({
+    
+      const newUser = await signupService({
       fullName,
       email: email.toLowerCase().trim(),
       password,
     });
-
+    console.log(newUser)
     res.status(201).json(newUser);
 
   } catch (error) {

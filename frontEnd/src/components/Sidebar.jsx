@@ -3,14 +3,16 @@ import { useChatStore } from "../store/useChatStore";
 import SlidebarSkeleton from "../components/skeletons/SlidebarSkeleton";
 import { Users } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import { useFriendStore } from "../store/useFriendStore";
 const Sidebar = () => {
   const {getUsers, users, selectedUser, setSelectedUser, isUserLoading } = useChatStore();
   const {onlineUsers} = useAuthStore()
+  const {friends,getAllFriends,isLoading} = useFriendStore()
   useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+    getAllFriends();
+  }, [getAllFriends]);
 
-  if (isUserLoading) return <SlidebarSkeleton />;
+  if (isLoading) return <SlidebarSkeleton />;
   return (
     <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="border-b border-base-300 w-full py-5 px-7 lg:px-5">
@@ -22,7 +24,7 @@ const Sidebar = () => {
       </div>
 
       <div className="overflow-y-auto w-full py-3">
-        {users.map((user) => (
+        {friends.map((user) => (
           <button
             key={user._id}
             onClick={() => {

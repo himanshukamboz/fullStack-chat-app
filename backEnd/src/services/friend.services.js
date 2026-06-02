@@ -8,6 +8,25 @@ export const getAllfriendsService = async (userId) =>{
   return user.friends
 }
 
+export const getIncomingFriendRequestsService = async (userId) => {
+  const incomingRequests = await FriendRequest.find({
+    receiver: userId,
+    status: "pending",
+  })
+    .populate("sender", "fullName email profilePic") 
+    .sort({ createdAt: -1 });
+
+  return incomingRequests;
+};
+
+export const getSentFriendRequestsService = async (userId) => {
+  return await FriendRequest.find({
+    sender: userId,
+    status: "pending",
+  })
+    .populate("receiver", "fullName email profilePic") 
+    .sort({ createdAt: -1 });
+};
 
 export const sendFriendRequestService = async (senderId, receiverId) => {
 
@@ -39,7 +58,8 @@ export const sendFriendRequestService = async (senderId, receiverId) => {
     sender: senderId,
     receiver: receiverId,
   });
-
+  await request.populate("receiver", "fullName email profilePic");
+  await request.populate("sender", "fullName email profilePic");
   return request;
 };
 
@@ -66,6 +86,25 @@ export const acceptRequestService = async (senderId, receiverId) => {
 
   
   return request;
+};
+
+export const removeFriendService = async (userId, friendId) => {
+  const user = await User.findById(userId);
+  const friend = await User.findById(friendId);
+
+  if (!user || !friend) {
+    throw new Error("User not found");
+  }
+
+  await User.findByIdAndUpdate(userId, {
+    $pull: { friends: friendId },
+  });
+
+  await User.findByIdAndUpdate(friendId, {
+    $pull: { friends: userId },
+  });
+
+  return { userId, friendId };
 };
 
 export const cancelFriendRequestService = async (senderId, receiverId) => {

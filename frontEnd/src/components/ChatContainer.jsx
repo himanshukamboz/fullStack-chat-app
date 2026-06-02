@@ -5,10 +5,12 @@ import ChatHeader from "./ChatHeader";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import Message from "./Message";
 const ChatContainer = () => {
-  const { messages, getMessages, isMessagesLoading, selectedUser } =useChatStore();
+  const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages } =useChatStore();
   const messagesEndRef = useRef(null)
   useEffect(() => {
     getMessages(selectedUser._id);
+    subscribeToMessages()
+    return ()=> unsubscribeFromMessages()
   }, [selectedUser._id, getMessages]);
 
   useEffect(() => {

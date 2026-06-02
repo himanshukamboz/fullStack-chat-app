@@ -36,3 +36,7 @@ export const getDateLabel = (date) => {
       year: "numeric",
     });
   };
+  export const nameFormatter = (name)=>{
+    console.log(name)
+    return name.split(" ").map(word=>word[0].toUpperCase()+word.slice(1)).join(" ")
+  }

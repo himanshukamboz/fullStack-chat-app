@@ -77,7 +77,7 @@ const MessageInput = () => {
             ref={fileInputRef}
             onChange={handleImageChange}
           />
-          <button className={`hidden sm:flex btn btn-circle
+          <button className={`sm:flex btn btn-circle
           ${previewImage?"text-emerald-500":"text-zinc-400"}`}
             type="button"
             onClick={()=>{fileInputRef?.current?.click()}}

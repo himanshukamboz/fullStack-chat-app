@@ -1,13 +1,14 @@
 import express from "express";
-import { acceptRequest, addFriendRequests, cancelRequest, getAllfriends, rejectRequest } from "../controllers/index.js";
+import { acceptRequest, addFriendRequests, cancelRequest, getAllfriends, rejectRequest,getFriendRequests,getSentRequests,removeFriend} from "../controllers/index.js";
 import {protectedRoute} from "../middleware/auth.middleware.js"
 const router = express.Router()
 
-router.get('/friends',protectedRoute,getAllfriends)
-router.post('/sendFriendRequest',protectedRoute,addFriendRequests)
-router.post("/acceptRequest",protectedRoute,acceptRequest)
-router.delete('/requestCancel',protectedRoute,cancelRequest)
-router.patch("/rejectRequest",protectedRoute,rejectRequest)
-
-
+router.get('/',protectedRoute,getAllfriends)
+router.get('/getRequests',protectedRoute,getFriendRequests)
+router.get("/sentRequests", protectedRoute, getSentRequests);
+router.post('/add',protectedRoute,addFriendRequests)
+router.post("/accept",protectedRoute,acceptRequest)
+router.post("/remove", protectedRoute, removeFriend);
+router.delete('/cancel/:receiverId',protectedRoute,cancelRequest)
+router.patch("/reject",protectedRoute,rejectRequest)
 export default router
