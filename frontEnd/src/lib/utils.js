@@ -5,6 +5,18 @@ export const formatMessageTime = (date) => {
         hour12:true,
     })
 }
+
+export const makeParaFormatter = (text, limit = 20) => {
+  if (!text) return "";
+
+
+  if (text.length <= limit) {
+    return text;
+  }
+
+  return text.slice(0, limit) + "...";
+};
+
 export const getDateLabel = (date) => {
     const messageDate = new Date(date);
     const now = new Date();

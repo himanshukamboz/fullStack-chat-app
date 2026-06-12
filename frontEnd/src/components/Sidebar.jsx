@@ -2,15 +2,21 @@ import React, { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import SlidebarSkeleton from "../components/skeletons/SlidebarSkeleton";
 import { Users } from "lucide-react";
+import { formatMessageTime,makeParaFormatter } from "../lib/utils";
 import { useAuthStore } from "../store/useAuthStore";
 import { useFriendStore } from "../store/useFriendStore";
 const Sidebar = () => {
-  const {getUsers, users, selectedUser, setSelectedUser, isUserLoading } = useChatStore();
-  const {onlineUsers} = useAuthStore()
-  const {friends,getAllFriends,isLoading} = useFriendStore()
+  const { getUsers, users, selectedUser, setSelectedUser, isUserLoading } =
+    useChatStore();
+  const { onlineUsers } = useAuthStore();
+  const { friends, getAllFriends, isLoading } = useFriendStore();
+  const { getUnreadCounts, unreadCounts } = useChatStore();
+
   useEffect(() => {
     getAllFriends();
+    getUnreadCounts();
   }, [getAllFriends]);
+
 
   if (isLoading) return <SlidebarSkeleton />;
   return (
@@ -53,12 +59,30 @@ const Sidebar = () => {
                   rounded-full ring-2 ring-zinc-900"
                 />
               )}
+              {unreadCounts[user._id] > 0 && (
+                <div className="absolute -top-2 -right-2 lg:hidden badge badge-xs badge-primary text-xs">
+                  {unreadCounts[user._id]}
+                </div>
+              )}
             </div>
             <div className="hidden lg:block text-left min-w-0">
               <div className="font-medium truncate">{user.fullName}</div>
               <div className="text-sm text-zinc-400">
-                {onlineUsers.includes(user._id) ? "Online" : "Offline"}
+                {/* {onlineUsers.includes(user._id) ? "Online" : "Offline"} */}
+                {makeParaFormatter(user.lastMessage)}
               </div>
+            </div>
+            <div className="hidden lg:flex flex-col gap-0.5 items-center ml-auto">
+              <div className="text-xs text-zinc-500">
+                {user.lastMessageTime
+                  ? formatMessageTime(user.lastMessageTime)
+                  : ""}
+              </div>
+              {unreadCounts[user._id] > 0 && (
+                <div className="badge badge-xs badge-primary">
+                  {unreadCounts[user._id]}
+                </div>
+              )}
             </div>
           </button>
         ))}

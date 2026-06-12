@@ -1,12 +1,54 @@
 import FriendRequest from "../models/friendRequest.model.js";
 import User from "../models/user.model.js"
-export const getAllfriendsService = async (userId) =>{
-  const user = await User.findById(userId).select("friends").populate("friends","fullName email profilePic")
-  if (!user) {
-    throw new Error("User not found");
+import Message from "../models/message.model.js";
+import Chat from "../models/chat.model.js";
+
+export const getAllfriendsService = async (userId) => {
+  try {
+    const user = await User.findById(userId).select("friends");
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const friendsWithChatData = await Promise.all(
+      user.friends.map(async (friendId) => {
+        
+        // 1. Get friend details
+        const friend = await User.findById(friendId).select(
+          "fullName email profilePic"
+        );
+
+        // 2. Get last message between both users
+        const lastMessage = await Message.findOne({
+          $or: [
+            { senderId: userId, receiverId: friendId },
+            { senderId: friendId, receiverId: userId },
+          ],
+        }).sort({ createdAt: -1 });
+
+        return {
+          _id: friend._id,
+          fullName: friend.fullName,
+          email: friend.email,
+          profilePic: friend.profilePic,
+
+          lastMessage: lastMessage?.text || "",
+          lastMessageTime: lastMessage?.createdAt || null,
+        };
+      })
+    );
+    friendsWithChatData.sort((a, b) => {
+      return new Date(b.lastMessageTime || 0) -
+             new Date(a.lastMessageTime || 0);
+    });
+
+    return friendsWithChatData;
+  } catch (error) {
+    console.log("getAllfriendsService error:", error);
+    throw error;
   }
-  return user.friends
-}
+};
 
 export const getIncomingFriendRequestsService = async (userId) => {
   const incomingRequests = await FriendRequest.find({
@@ -84,7 +126,20 @@ export const acceptRequestService = async (senderId, receiverId) => {
     $addToSet: { friends: senderId },
   });
 
+  const existingChat = await Chat.findOne({
+    type: "private",
+    members: {
+      $all: [senderId, receiverId],
+    },
+  });
   
+  if (!existingChat) {
+    await Chat.create({
+      type: "private",
+      members: [senderId, receiverId],
+    });
+  }
+
   return request;
 };
 

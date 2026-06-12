@@ -4,10 +4,27 @@ import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 const MessageInput = () => {
+  const {sendTyping,sendStopTyping,sendMessage,selectedUser} = useChatStore()
   const [text, setText] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
-  const {sendMessage} = useChatStore()
+  const typingTimeoutRef = useRef(null)
+
+  const handleTyping = (e) => {
+    const value = e.target.value;
+    setText(value);
+  
+    if (!selectedUser) return;
+  
+    sendTyping(selectedUser._id);
+  
+    clearTimeout(typingTimeoutRef.current);
+  
+    typingTimeoutRef.current = setTimeout(() => {
+      sendStopTyping(selectedUser._id);
+    }, 1500);
+  };
+
   const handleImageChange = (e)=>{
     const file = e.target.files[0]
     if (!file.type.startsWith("image/")){
@@ -31,6 +48,12 @@ const MessageInput = () => {
     e.preventDefault()
 
     if(!text.trim() && !previewImage)return
+
+    if (selectedUser) {
+      sendStopTyping(selectedUser._id);
+    }
+  
+    clearTimeout(typingTimeoutRef.current);
 
     try {
       
@@ -69,7 +92,7 @@ const MessageInput = () => {
           <input type="text"
             className="flex input input-bordered rounded-lg input-sm outline-none md:w-full sm:input-md"
             value={text}
-            onChange={(e)=>{setText(e.target.value)}}
+            onChange={handleTyping}
           />
           <input type="file"
             accept="image/*"

@@ -1,20 +1,45 @@
-const groupSchema = new mongoose.Schema({
-    name: String,
-  
+// models/group.model.js
+
+import mongoose from "mongoose";
+
+const groupSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    groupImage: {
+      type: String,
+      default: null,
+    },
+
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-  
+
     admins: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-  
-    groupPic: String,
-  }, { timestamps: true });
-  
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const Group = mongoose.model("Group", groupSchema);
+
+export default Group;

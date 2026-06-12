@@ -1,7 +1,7 @@
 import {Server} from "socket.io"
 import http from "http"
 import express from "express"
-
+import Message from "../models/message.model.js";
 const app = express()
 const server = http.createServer(app)
 
@@ -13,7 +13,7 @@ const io = new Server(server,{
 
 const userSocketMap = {}; 
 
-io.on("connection",(socket)=>{
+io.on("connection",async(socket)=>{
     console.log("A user connected",socket.id)
 
     const userId = socket.handshake.query.userId;
@@ -25,7 +25,56 @@ io.on("connection",(socket)=>{
         userSocketMap[userId].push(socket.id);
     }
 
+    if (userId) {
+
+        const pendingMessages = await Message.find({
+          receiverId: userId,
+          status: "sent",
+        });
+      
+        await Message.updateMany(
+          {
+            receiverId: userId,
+            status: "sent",
+          },
+          {
+            status: "delivered",
+          }
+        );
+      
+        for (const message of pendingMessages) {
+      
+          const senderSockets = getReceiverSocketId(
+            message.senderId.toString()
+          );
+      
+          senderSockets?.forEach((socketId) => {
+            io.to(socketId).emit("messageDelivered", {
+              messageId: message._id,
+            });
+          });
+        }
+      }
+
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    socket.on("typing",({receiverId})=>{
+      const receiverSockets = getReceiverSocketId(receiverId)
+      receiverSockets?.forEach((socketId)=>{
+        io.to(socketId).emit("userTyping",{
+          userId
+        })
+      })
+    });
+
+    socket.on("stopTyping", ({ receiverId }) => {
+      const receiverSockets = getReceiverSocketId(receiverId);
+      console.log("stoptyping")
+      receiverSockets?.forEach((socketId) => {
+        io.to(socketId).emit("userStoppedTyping", {
+          userId,
+        });
+      });
+    });
 
     socket.on("disconnect",()=>{
         console.log("A user disconnected",socket.id);

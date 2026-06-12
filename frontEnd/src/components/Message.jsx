@@ -77,6 +77,17 @@ const Message = ({ message, prevMessage, selectedUser }) => {
 
           {message.text && <p>{message.text}</p>}
         </div>
+        {message.senderId === authUser._id && (
+          <span className="text-xs ml-2 opacity-70">
+            {message.status === "sent" && "✓"}
+            {message.status === "delivered" && "✓✓"}
+            {message.status === "read" && (
+              <span className="text-blue-500">
+                ✓✓
+              </span>
+            )}
+          </span>
+        )}
       </div>
     </>
   );

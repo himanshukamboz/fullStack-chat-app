@@ -1,10 +1,23 @@
 import { MessageSquare,UserPlus,Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import GroupModal from "./CreateGroupModal";
 
 const NoChatSelected = () => {
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const navigate = useNavigate()
+  const handleCreateGroup = ({ name, members }) => {
+    console.log("Creating group:", name, members);
+    
+  };
   return (
     <div className="w-full flex flex-1 flex-col items-center justify-center p-16 bg-base-100/50">
+      {showGroupModal && (
+      <GroupModal
+        onClose={() => setShowGroupModal(false)}
+        onCreateGroup={handleCreateGroup}
+      />
+    )}
       <div className="max-w-md text-center space-y-6">
         {/* Icon Display */}
         <div className="flex justify-center gap-4 mb-4">
@@ -29,7 +42,7 @@ const NoChatSelected = () => {
             <span className="text-sm">Add Friend</span>
           </div>
           <div
-            onClick={() => navigate("/create-group")}
+            onClick={() => setShowGroupModal(true)}
             className="cursor-pointer w-24 h-24 rounded-2xl bg-base-200 hover:bg-primary/10 flex flex-col items-center justify-center gap-2 transition"
           >
             <Users className="w-6 h-6" />
