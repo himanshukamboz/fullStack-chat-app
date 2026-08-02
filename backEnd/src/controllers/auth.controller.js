@@ -11,7 +11,6 @@ export const signup = async (req, res) => {
       email: email.toLowerCase().trim(),
       password,
     });
-    console.log(newUser)
     res.status(201).json(newUser);
 
   } catch (error) {

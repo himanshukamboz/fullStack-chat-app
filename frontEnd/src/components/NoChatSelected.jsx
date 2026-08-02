@@ -1,23 +1,26 @@
-import { MessageSquare,UserPlus,Users } from "lucide-react";
+import { MessageSquare, UserPlus, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import GroupModal from "./CreateGroupModal";
+import { useChatStore } from "../store/useChatStore";
 
 const NoChatSelected = () => {
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const navigate = useNavigate()
-  const handleCreateGroup = ({ name, members }) => {
-    console.log("Creating group:", name, members);
-    
+  const navigate = useNavigate();
+  const { createGroup } = useChatStore();
+
+  const handleCreateGroup = async ({ name, members }) => {
+    await createGroup({ name, members });
   };
+
   return (
     <div className="w-full flex flex-1 flex-col items-center justify-center p-16 bg-base-100/50">
       {showGroupModal && (
-      <GroupModal
-        onClose={() => setShowGroupModal(false)}
-        onCreateGroup={handleCreateGroup}
-      />
-    )}
+        <GroupModal
+          onClose={() => setShowGroupModal(false)}
+          onCreateGroup={handleCreateGroup}
+        />
+      )}
       <div className="max-w-md text-center space-y-6">
         {/* Icon Display */}
         <div className="flex justify-center gap-4 mb-4">

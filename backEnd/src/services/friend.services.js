@@ -159,6 +159,13 @@ export const removeFriendService = async (userId, friendId) => {
     $pull: { friends: userId },
   });
 
+  await Chat.findOneAndDelete({
+    type: "private",
+    members: {
+      $all: [userId, friendId],
+    },
+  });
+
   return { userId, friendId };
 };
 

@@ -2,16 +2,40 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
-import { useFriendStore } from "./useFriendStore";
 export const useChatStore = create((set, get) => ({
+  chatList:[],
   messages: [],
   users: [],
   usersTyping:[],
+  groupUsersTyping: {}, 
+  selectedChat:{},
   selectedUser: null,
+  selectedGroup:null,
+  groupMessages:[],
   isUsersLoading: false,
   isMessagesLoading: false,
   uploadProgress: 0,
-  unreadCounts: {},
+  unreadCounts: {
+    private: {},
+    group: {},
+  },
+  getChatList: async () => {
+    set({isUsersLoading: true});
+    try{
+      const res = await axiosInstance.get("/chats/chat-list")
+      set({chatList:res.data})
+    }
+    catch(error){
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "something went wrong"
+      );
+    }
+    finally{
+      set({isUsersLoading:false})
+    }
+  },
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
@@ -96,8 +120,6 @@ export const useChatStore = create((set, get) => ({
               : msg
           );
       
-          console.log("AFTER REPLACE", updatedMessages);
-      
           return {
             messages: updatedMessages,
             uploadProgress: 0,
@@ -115,6 +137,74 @@ export const useChatStore = create((set, get) => ({
       toast.error(error?.response?.data?.message || "Failed to send message");
     }
   },
+
+  getGroupMessages: async (groupId) => {
+    set({ isMessagesLoading: true });
+    try {
+      const res = await axiosInstance.get(`/groups/messages/${groupId}`);
+      set({ groupMessages: res.data });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "something went wrong");
+    } finally {
+      set({ isMessagesLoading: false });
+    }
+  },
+
+  sendGroupMessage: async (data) => {
+    const { groupMessages, selectedGroup } = get();
+    const authUser = useAuthStore.getState().authUser;
+    const tempId = Date.now();
+  
+    const tempMessage = {
+      _id: tempId,
+      text: data.text,
+      image: data.image,
+      senderId: authUser?._id,
+      createdAt: new Date().toISOString(),
+      isSending: true,
+    };
+  
+    set({ groupMessages: [...groupMessages, tempMessage] });
+  
+    try {
+      const res = await axiosInstance.post(`/groups/send/${selectedGroup._id}`, data);
+  
+      set((state) => ({
+        groupMessages: state.groupMessages.map((msg) =>
+          msg._id === tempId ? { ...res.data, isSending: false } : msg
+        ),
+      }));
+  
+      set((state) => {
+        const updatedChatList = state.chatList
+          .map((chat) =>
+            chat.type === "group" && String(chat.group?._id) === String(selectedGroup._id)
+              ? { ...chat, lastMessage: res.data.text, lastMessageTime: res.data.createdAt }
+              : chat
+          )
+          .sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+        return { chatList: updatedChatList };
+      });
+    } catch (error) {
+      set((state) => ({
+        groupMessages: state.groupMessages.map((msg) =>
+          msg._id === tempId ? { ...msg, isSending: false, isError: true } : msg
+        ),
+      }));
+      toast.error(error?.response?.data?.message || "Failed to send message");
+    }
+  },
+
+  createGroup: async ({ name, members }) => {
+    try {
+      await axiosInstance.post("/groups/create", { name, members });
+      await get().getChatList();
+      toast.success("Group created");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to create group");
+    }
+  },
+
   markMessagesAsRead: async (userId) => {
     try {
       await axiosInstance.patch(`/messages/read/${userId}`);
@@ -124,18 +214,20 @@ export const useChatStore = create((set, get) => ({
   },
   getUnreadCounts: async () => {
     try {
-      const res = await axiosInstance.get(
-        "/messages/unread-counts"
-      );
+      const res = await axiosInstance.get("/messages/unread-counts");
   
-      const counts = {};
+      const privateCounts = {};
+      const groupCounts = {};
   
       res.data.forEach((item) => {
-        counts[item._id] = item.count;
+        privateCounts[item._id] = item.count;
       });
   
       set({
-        unreadCounts: counts,
+        unreadCounts: {
+          private: privateCounts,
+          group: groupCounts,
+        },
       });
     } catch (error) {
       console.log(error);
@@ -160,10 +252,47 @@ export const useChatStore = create((set, get) => ({
       receiverId: selectedUser._id,
     });
   },
+  sendGroupTyping: () => {
+    const socket = useAuthStore.getState().socket;
+    const { selectedGroup } = get();
+    console.log(selectedGroup)
+    if (!socket || !selectedGroup) return;
+    socket.emit("groupTyping", {
+      groupId: selectedGroup._id,
+      members: selectedGroup.members?.map((m) => m._id || m)
+    });
+  },
+  
+  sendGroupStopTyping: () => {
+    const socket = useAuthStore.getState().socket;
+    const { selectedGroup } = get();
+    if (!socket || !selectedGroup) return;
+    socket.emit("groupStopTyping", {
+      groupId: selectedGroup._id,
+      members: selectedGroup.members?.map((m) => m._id || m),
+    });
+  },
+
+  updateGroup: async (groupId, data) => {
+    try {
+      const res = await axiosInstance.put(`/groups/${groupId}`, data);
+      set((state) => ({
+        selectedGroup:
+          state.selectedGroup?._id === groupId ? res.data : state.selectedGroup,
+        chatList: state.chatList.map((chat) =>
+          chat.type === "group" && String(chat.group?._id) === groupId
+            ? { ...chat, group: res.data }
+            : chat
+        ),
+      }));
+      toast.success("Group updated");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to update group");
+    }
+  },
+  
   subscribeToMessages: () => {
     console.log("subscribe to messageEvents");
-    const { selectedUser } = get();
-    if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
 
@@ -181,24 +310,32 @@ export const useChatStore = create((set, get) => ({
     
       const isMyMessage = senderId === myId;
 
-      useFriendStore.setState((state) => {
-        const updatedFriends = state.friends.map((f) => {
-          if (String(f._id) === otherUserId) {
+      set((state) => {
+        const updatedChatList = state.chatList.map((chat) => {
+          if (
+            chat.type === "private" &&
+            String(chat.user._id) === otherUserId
+          ) {
             return {
-              ...f,
+              ...chat,
               lastMessage: newMessage.text,
               lastMessageTime: newMessage.createdAt,
             };
           }
-          return f;
+      
+          return chat;
         });
-        
-      updatedFriends.sort((a, b) => {
-          return new Date(b.lastMessageTime || 0) -
-                 new Date(a.lastMessageTime || 0);
+      
+        updatedChatList.sort((a, b) => {
+          return (
+            new Date(b.lastMessageTime || 0) -
+            new Date(a.lastMessageTime || 0)
+          );
         });
-    
-        return { friends: updatedFriends };
+      
+        return {
+          chatList: updatedChatList,
+        };
       });
     
       const isChatOpen =
@@ -216,35 +353,71 @@ export const useChatStore = create((set, get) => ({
         }
     
         set((state) => {
-          const updated = { ...state.unreadCounts };
-          delete updated[senderId];
-          return { unreadCounts: updated };
+          const updated = {
+            ...state.unreadCounts,
+            private: {
+              ...state.unreadCounts.private,
+            },
+          };
+          
+          delete updated.private[senderId];
+          
+          return {
+            unreadCounts: updated,
+          };
         });
     
         return;
       }
       if (!isMyMessage) {
+        console.log("event ocurring")
         set((state) => {
-          const updated = { ...state.unreadCounts };
-    
-          updated[senderId] = (updated[senderId] || 0) + 1;
-    
-          return { unreadCounts: updated };
+          const updated = {
+            ...state.unreadCounts,
+            private: {
+              ...state.unreadCounts.private,
+            },
+          };
+          
+          updated.private[senderId] =
+            (updated.private[senderId] || 0) + 1;
+          
+          return {
+            unreadCounts: updated,
+          };
         });
       }
     });
 
-    socket.on("friendRemoved", ({ userId, friendId }) => {
-      console.log(userId, friendId);
-      const myId = String(useAuthStore.getState().authUser._id);
-
-      const removedUserId =
-        myId === String(userId) ? String(friendId) : String(userId);
-
-      useFriendStore.setState((state) => ({
-        friends: state.friends.filter((f) => String(f._id) !== removedUserId),
-      }));
+        
+    socket.on("newGroupMessage", (newMessage) => {
+      const { selectedGroup } = get();
+      const isGroupOpen = selectedGroup && String(selectedGroup._id) === String(newMessage.groupId);
+    
+      if (isGroupOpen) {
+        set((state) => ({ groupMessages: [...state.groupMessages, newMessage] }));
+      } else {
+        set((state) => {
+          const updated = { ...state.unreadCounts, group: { ...state.unreadCounts.group } };
+          const gId = String(newMessage.groupId);
+          updated.group[gId] = (updated.group[gId] || 0) + 1;
+          return { unreadCounts: updated };
+        });
+      }
+    
+      set((state) => {
+        const updatedChatList = state.chatList
+          .map((chat) =>
+            chat.type === "group" && String(chat.group?._id) === String(newMessage.groupId)
+              ? { ...chat, lastMessage: newMessage.text, lastMessageTime: newMessage.createdAt }
+              : chat
+          )
+          .sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+        return { chatList: updatedChatList };
+      });
     });
+
+    
     socket.on("messageDelivered", ({ messageId }) => {
       set((state) => ({
         messages: state.messages.map((msg) =>
@@ -269,6 +442,31 @@ export const useChatStore = create((set, get) => ({
      }))
     });
 
+    socket.on("userGroupTyping", ({ userId, groupId }) => {
+      console.log("UserGroupTyping event",userId,groupId)
+      set((state) => {
+        const current = state.groupUsersTyping[groupId] || [];
+        return {
+          groupUsersTyping: {
+            ...state.groupUsersTyping,
+            [groupId]: [...new Set([...current, userId])],
+          },
+        };
+      });
+    });
+    
+    socket.on("userGroupStoppedTyping", ({ userId, groupId }) => {
+      set((state) => {
+        const current = state.groupUsersTyping[groupId] || [];
+        return {
+          groupUsersTyping: {
+            ...state.groupUsersTyping,
+            [groupId]: current.filter((id) => String(id) !== String(userId)),
+          },
+        };
+      });
+    });
+
     socket.on("userStoppedTyping", ({ userId }) => {
       console.log("stoptyping")
       set((state) => ({
@@ -281,22 +479,35 @@ export const useChatStore = create((set, get) => ({
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
+    if(!socket) return
     socket.off("newMessage");
-    socket.off("friendRemoved");
+    socket.off("newGroupMessage");
     socket.off("messageDelivered");
     socket.off("messageRead");
     socket.off("userTyping");
     socket.off("userStoppedTyping");
+    socket.off("userGroupTyping");
+    socket.off("userGroupStoppedTyping");
   },
   setSelectedUser: async (selectedUser) => {
-    set({ selectedUser });
+    set({ selectedUser,selectedGroup: null  });
   
+    if(!selectedUser) return
     const userId = selectedUser._id;
   
     set((state) => {
-      const updated = { ...state.unreadCounts };
-      delete updated[userId];
-      return { unreadCounts: updated };
+      const updated = {
+        ...state.unreadCounts,
+        private: {
+          ...state.unreadCounts.private,
+        },
+      };
+    
+      delete updated.private[userId];
+    
+      return {
+        unreadCounts: updated,
+      };
     });
   
     try {
@@ -306,4 +517,15 @@ export const useChatStore = create((set, get) => ({
       console.log(err);
     }
   }
+  ,
+  setSelectedGroup: async (group) => {
+    set({ selectedGroup: group, selectedUser: null }); // clear selectedUser too
+    if (!group) return;
+    set((state) => {
+      const updated = { ...state.unreadCounts, group: { ...state.unreadCounts.group } };
+      delete updated.group[group._id];
+      return { unreadCounts: updated };
+    });
+    await get().getGroupMessages(group._id);
+  },
 }));

@@ -62,7 +62,7 @@ export const sendMessage = async(req,res)=>{
         },
       },
       {
-        lastMessage: text || "📷 Image",
+        lastMessage: text || "",
         lastMessageTime: new Date(),
         lastMessageSender: senderId,
       }

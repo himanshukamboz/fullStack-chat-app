@@ -2,6 +2,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import { useChatStore } from "./useChatStore";
 
 export const useFriendStore = create((set, get) => ({
   friends: [],
@@ -88,6 +89,14 @@ export const useFriendStore = create((set, get) => ({
       set((state) => ({
         friends: state.friends.filter((f) => f._id !== friendId),
       }));
+  
+      // NEW: also remove the private chat from chatList
+      useChatStore.setState((state) => ({
+        chatList: state.chatList.filter(
+          (chat) => !(chat.type === "private" && String(chat.user?._id) === String(friendId))
+        ),
+      }));
+  
       get().getFriendRequests();
       toast.success("Friend removed");
     } catch (error) {
@@ -191,8 +200,22 @@ export const useFriendStore = create((set, get) => ({
     });
 
     socket.on("friendRemoved", ({ userId, friendId }) => {
-      console.log("friendremoved")
+      const myId = String(useAuthStore.getState().authUser._id);
+      const removedUserId = myId === String(userId) ? String(friendId) : String(userId);
+    
+      set((state) => ({
+        friends: state.friends.filter((f) => String(f._id) !== removedUserId),
+      }));
+    
+      // NEW: also remove the private chat from chatList
+      useChatStore.setState((state) => ({
+        chatList: state.chatList.filter(
+          (chat) => !(chat.type === "private" && String(chat.user?._id) === removedUserId)
+        ),
+        selectedUser: String(state.selectedUser?._id) === removedUserId ? null : state.selectedUser
+      }));
     });
+    
   },
 
   unsubscribeFromFriendEvents: () => {

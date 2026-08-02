@@ -2,14 +2,23 @@ import React from "react";
 import { formatMessageTime, getDateLabel } from "../lib/utils";
 import { useAuthStore } from "../store/useAuthStore";
 
-const Message = ({ message, prevMessage, selectedUser }) => {
+const Message = ({ message, prevMessage, selectedUser, isGroup = false }) => {
   const { authUser } = useAuthStore();
 
-  const currentDate = new Date(message.createdAt).toDateString();
-  const prevDate = prevMessage
-    ? new Date(prevMessage.createdAt).toDateString()
-    : null;
+  const senderId = isGroup
+    ? String(message.senderId?._id || message.senderId)
+    : message.senderId;
+  const isMine = String(senderId) === String(authUser._id);
 
+  const senderName = isGroup ? message.senderId?.fullName : null;
+  const senderPic = isGroup
+    ? message.senderId?.profilePic || "/avatar.png"
+    : isMine
+    ? authUser.profilePic || "/avatar.png"
+    : selectedUser?.profilePic || "/avatar.png";
+
+  const currentDate = new Date(message.createdAt).toDateString();
+  const prevDate = prevMessage ? new Date(prevMessage.createdAt).toDateString() : null;
   const showDate = currentDate !== prevDate;
 
   return (
@@ -22,21 +31,10 @@ const Message = ({ message, prevMessage, selectedUser }) => {
         </div>
       )}
 
-      <div
-        className={`chat ${
-          message.senderId === authUser._id ? "chat-end" : "chat-start"
-        }`}
-      >
+      <div className={`chat ${isMine ? "chat-end" : "chat-start"}`}>
         <div className="chat-image avatar">
           <div className="size-10 rounded-full border">
-            <img
-              src={
-                message.senderId === authUser._id
-                  ? authUser.profilePic || "/avatar.png"
-                  : selectedUser.profilePic || "/avatar.png"
-              }
-              alt="ProfilePic"
-            />
+            <img src={senderPic} alt="ProfilePic" />
           </div>
         </div>
 
@@ -46,24 +44,25 @@ const Message = ({ message, prevMessage, selectedUser }) => {
           </time>
         </div>
 
-        {/* Message Content */}
-        <div className="chat-bubble flex flex-col">
+        {/* max-w constrains bubble width so wrapping actually kicks in */}
+        <div className="chat-bubble p-0 flex flex-col max-w-[75vw] sm:max-w-xs md:max-w-sm">
+          {isGroup && !isMine && (
+            <div className="text-[11px] m-0 font-bold opacity-70 truncate px-2 mx-2 pt-1">
+              {senderName}
+            </div>
+          )}
           {message.image && (
             <div className="relative w-fit">
               <img
                 src={message.image}
                 alt="Attachment"
-                className={`sm:max-w-[200px] rounded-md ${
-                  message.isSending ? "opacity-50" : ""
-                }`}
+                className={`sm:max-w-[200px] rounded-md ${message.isSending ? "opacity-50" : ""}`}
               />
-
               {message.isSending && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-md">
                   <span className="text-white text-sm font-semibold">
                     {message.progress || 0}%
                   </span>
-
                   <div className="w-3/4 bg-gray-300 rounded-full h-1 mt-2">
                     <div
                       className="bg-blue-500 h-1 rounded-full"
@@ -74,18 +73,22 @@ const Message = ({ message, prevMessage, selectedUser }) => {
               )}
             </div>
           )}
-
-          {message.text && <p>{message.text}</p>}
+          {message.text && (
+            <p
+              className={`mx-4 whitespace-pre-wrap break-words ${
+                isMine ? "my-2" : "mb-2"
+              }`}
+            >
+              {message.text}
+            </p>
+          )}
         </div>
-        {message.senderId === authUser._id && (
+
+        {isMine && !isGroup && (
           <span className="text-xs ml-2 opacity-70">
             {message.status === "sent" && "✓"}
             {message.status === "delivered" && "✓✓"}
-            {message.status === "read" && (
-              <span className="text-blue-500">
-                ✓✓
-              </span>
-            )}
+            {message.status === "read" && <span className="text-blue-500">✓✓</span>}
           </span>
         )}
       </div>

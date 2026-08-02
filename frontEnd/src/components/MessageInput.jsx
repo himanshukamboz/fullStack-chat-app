@@ -3,119 +3,153 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = () => {
-  const {sendTyping,sendStopTyping,sendMessage,selectedUser} = useChatStore()
-  const [text, setText] = useState('');
+const MessageInput = ({ isGroup = false }) => {
+  const {
+    sendTyping,
+    sendStopTyping,
+    sendMessage,
+    selectedUser,
+    sendGroupTyping,
+    sendGroupStopTyping,
+    sendGroupMessage,
+    selectedGroup,
+  } = useChatStore();
+
+  const [text, setText] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
   const fileInputRef = useRef(null);
-  const typingTimeoutRef = useRef(null)
+  const typingTimeoutRef = useRef(null);
 
   const handleTyping = (e) => {
     const value = e.target.value;
     setText(value);
-  
-    if (!selectedUser) return;
-  
-    sendTyping(selectedUser._id);
-  
+
+    if (isGroup) {
+      if (!selectedGroup) return;
+      sendGroupTyping();
+    } else {
+      if (!selectedUser) return;
+      sendTyping(selectedUser._id);
+    }
+
     clearTimeout(typingTimeoutRef.current);
-  
+
     typingTimeoutRef.current = setTimeout(() => {
-      sendStopTyping(selectedUser._id);
+      if (isGroup) {
+        sendGroupStopTyping();
+      } else {
+        sendStopTyping(selectedUser._id);
+      }
     }, 1500);
   };
 
-  const handleImageChange = (e)=>{
-    const file = e.target.files[0]
-    if (!file.type.startsWith("image/")){
-      toast.error("Please Select the image file")
-      return
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please Select the image file");
+      return;
     }
-    
-    const reader = new FileReader()
-    reader.onloadend = ()=>{
-      setPreviewImage(reader.result)
-    }
-    reader.readAsDataURL(file)
-  }
 
-  const removeImage = ()=>{
-    setPreviewImage(null)
-    if (fileInputRef.current) fileInputRef.current.value =""
-  }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
-  const handleSendMessage = async(e) => {
-    e.preventDefault()
+  const removeImage = () => {
+    setPreviewImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
-    if(!text.trim() && !previewImage)return
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
 
-    if (selectedUser) {
+    if (!text.trim() && !previewImage) return;
+
+    if (isGroup) {
+      sendGroupStopTyping();
+    } else if (selectedUser) {
       sendStopTyping(selectedUser._id);
     }
-  
+
     clearTimeout(typingTimeoutRef.current);
 
     try {
-      
-      await sendMessage({
-        text:text.trim(),
-        image:previewImage
-      })
+      if (isGroup) {
+        await sendGroupMessage({
+          text: text.trim(),
+          image: previewImage,
+        });
+      } else {
+        await sendMessage({
+          text: text.trim(),
+          image: previewImage,
+        });
+      }
 
-      setText("")
-      setPreviewImage(null)
-      if (fileInputRef.current) fileInputRef.current.value =""
-
+      setText("");
+      setPreviewImage(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
-      console.error("Failed to send message",error)
+      console.error("Failed to send message", error);
     }
-  }
+  };
+
   return (
     <div className="p-4 w-full">
       {previewImage && (
         <div className="mb-2 flex items-center gap-2">
           <div className="relative">
-            <img src={previewImage} alt="Preview" 
-            className="w-20 h-20 object-cover rounded-lg border-zinc-700" 
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="w-20 h-20 object-cover rounded-lg border-zinc-700"
             />
-            <button className="relative -top-21 -right-16 w-5 h-5 rounded-full bg-base-300 
+            <button
+              className="relative -top-21 -right-16 w-5 h-5 rounded-full bg-base-300 
             flex justify-center items-center"
-            onClick={removeImage}>
-              <X className="size-3"/>
+              onClick={removeImage}
+            >
+              <X className="size-3" />
             </button>
-
           </div>
         </div>
       )}
       <form onSubmit={handleSendMessage} className="flex items-center gap-2">
         <div className="flex-1 flex gap-2">
-          <input type="text"
+          <input
+            type="text"
             className="flex input input-bordered rounded-lg input-sm outline-none md:w-full sm:input-md"
             value={text}
             onChange={handleTyping}
           />
-          <input type="file"
+          <input
+            type="file"
             accept="image/*"
             className="hidden"
             ref={fileInputRef}
             onChange={handleImageChange}
           />
-          <button className={`sm:flex btn btn-circle
-          ${previewImage?"text-emerald-500":"text-zinc-400"}`}
+          <button
+            className={`sm:flex btn btn-circle
+          ${previewImage ? "text-emerald-500" : "text-zinc-400"}`}
             type="button"
-            onClick={()=>{fileInputRef?.current?.click()}}
+            onClick={() => {
+              fileInputRef?.current?.click();
+            }}
           >
-            <Image size={19}/>
+            <Image size={19} />
           </button>
         </div>
-        <button type="submit"
+        <button
+          type="submit"
           className="btn btn-sm btn-circle flex justify-center items-center"
           disabled={!text.trim() && !previewImage}
         >
-          <Send size={22}/>
+          <Send size={22} />
         </button>
       </form>
-      
     </div>
   );
 };

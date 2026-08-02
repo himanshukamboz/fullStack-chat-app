@@ -1,7 +1,4 @@
-// models/group.model.js
-
 import mongoose from "mongoose";
-
 const groupSchema = new mongoose.Schema(
   {
     name: {
@@ -9,37 +6,34 @@ const groupSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     groupImage: {
       type: String,
       default: null,
     },
-
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-
     admins: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
-
 const Group = mongoose.model("Group", groupSchema);
-
 export default Group;

@@ -1,7 +1,7 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
-import transporter from "../config/nodemailer.js";
+import {sendOtpEmail} from "../config/mailer.js"
 
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -22,16 +22,7 @@ export const signupService = async ({ fullName, email, password }) => {
 
     await existingUser.save();
 
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: email,
-      subject: "Verify your account",
-      html: `
-        <h2>OTP Verification</h2>
-        <p>Your OTP is: <b>${otp}</b></p>
-        <p>This OTP will expire in 5 minutes.</p>
-      `,
-    });
+    await sendOtpEmail(email,otp)
 
     return existingUser;
   }
@@ -58,16 +49,7 @@ export const signupService = async ({ fullName, email, password }) => {
     isVerified: false,
   });
 
-  await transporter.sendMail({
-    from: `chatty <${process.env.EMAIL}>`,
-    to: email,
-    subject: "Verify your account",
-    html: `
-      <h2>OTP Verification</h2>
-      <p>Your OTP is: <b>${otp}</b></p>
-      <p>This OTP will expire in 5 minutes.</p>
-    `,
-  });
+  await sendOtpEmail(email, otp);
 
   return newUser;
 };

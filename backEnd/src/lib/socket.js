@@ -24,7 +24,7 @@ io.on("connection",async(socket)=>{
         }
         userSocketMap[userId].push(socket.id);
     }
-
+    console.log(userSocketMap[userId])
     if (userId) {
 
         const pendingMessages = await Message.find({
@@ -72,6 +72,26 @@ io.on("connection",async(socket)=>{
       receiverSockets?.forEach((socketId) => {
         io.to(socketId).emit("userStoppedTyping", {
           userId,
+        });
+      });
+    });
+
+    socket.on("groupTyping", ({ groupId, members }) => {
+      members?.forEach((memberId) => {
+        if (String(memberId) === String(userId)) return;
+        const memberSockets = getReceiverSocketId(memberId);
+        memberSockets?.forEach((socketId) => {
+          io.to(socketId).emit("userGroupTyping", { userId, groupId });
+        });
+      });
+    });
+
+    socket.on("groupStopTyping", ({ groupId, members }) => {
+      members?.forEach((memberId) => {
+        if (String(memberId) === String(userId)) return;
+        const memberSockets = getReceiverSocketId(memberId);
+        memberSockets?.forEach((socketId) => {
+          io.to(socketId).emit("userGroupStoppedTyping", { userId, groupId });
         });
       });
     });

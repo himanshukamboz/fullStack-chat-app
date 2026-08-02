@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, UserPlus, Check, X } from "lucide-react";
+import { Search, UserPlus, Check, X,Loader } from "lucide-react";
 import { useFriendStore } from "../store/useFriendStore";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -7,6 +7,7 @@ import { nameFormatter } from "../lib/utils";
 export default function AddFriendsUI() {
   const { authUser } = useAuthStore();
   const [search, setSearch] = useState("");
+  const [pageLoading, setPageLoading] = useState(true);
   const { users, getUsers } = useChatStore();
   const {
     friends,
@@ -25,15 +26,24 @@ export default function AddFriendsUI() {
   } = useFriendStore();
 
   useEffect(() => {
-    getFriendRequests();
-    getUsers();
-    getAllFriends();
-    getSentRequests();
-    subscribeToFriendEvents();
-
-    return () => {
-      unsubscribeFromFriendEvents();
+    const load = async () => {
+      setPageLoading(true);
+  
+      await Promise.all([
+        getUsers(),
+        getAllFriends(),
+        getFriendRequests(),
+        getSentRequests(),
+      ]);
+  
+      subscribeToFriendEvents();
+  
+      setPageLoading(false);
     };
+  
+    load();
+  
+    return () => unsubscribeFromFriendEvents();
   }, []);
   const filteredUsers = users.filter((user) => {
     const isMe = user._id === authUser?._id;
@@ -63,6 +73,13 @@ export default function AddFriendsUI() {
       !isRequestReceived
     );
   });
+  if (pageLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+         <Loader className='size-10 animate-spin' />
+      </div>
+    );
+  }
   return (
     <div className="p-6 max-w-4xl mx-auto mt-8">
       <h1 className="text-2xl font-bold mb-6">Add Friends</h1>
@@ -84,9 +101,6 @@ export default function AddFriendsUI() {
         <>
         <h2 className="text-lg font-semibold mb-4">Friend Requests</h2>
 
-        {friendRequests.length === 0 ? (
-          <p className="text-sm opacity-70">No requests</p>
-        ) : (
           <div className="space-y-4">
             {friendRequests.map((req) => (
               <div key={req._id} className="card bg-base-100 shadow-md border">
@@ -125,7 +139,7 @@ export default function AddFriendsUI() {
             ))}
           </div>
           
-        )}
+        
         </>)}
       </div>
 
@@ -134,9 +148,7 @@ export default function AddFriendsUI() {
         <>
         <h2 className="text-lg font-semibold mb-4">Sent Requests</h2>
 
-        {sentRequests.length === 0 ? (
-          <p className="text-sm opacity-70">No sent requests</p>
-        ) : (
+        
           <div className="space-y-4">
             {sentRequests.map((req) => (
               <div key={req._id} className="card bg-base-100 shadow-md border">
@@ -166,7 +178,7 @@ export default function AddFriendsUI() {
               </div>
             ))}
           </div>
-        )}
+        
         </>)}
       </div>
 
